@@ -1,5 +1,6 @@
 import telebot
 from telebot import types
+import datetime
 
 token = input('Token: ')
 bot = telebot.TeleBot(f'{token}')
@@ -29,6 +30,8 @@ def get_age(message):
             age = int(message.text) #проверяем, что возраст введен корректно
         except Exception:
             bot.send_message(message.from_user.id, 'Цифрами, пожалуйста')
+            bot.register_next_step_handler(message, get_age)
+            return
     keyboard = types.InlineKeyboardMarkup() #наша клавиатура
     key_yes = types.InlineKeyboardButton(text='Да', callback_data='yes') #кнопка «Да»
     keyboard.add(key_yes) #добавляем кнопку в клавиатуру
@@ -41,12 +44,24 @@ def get_age(message):
 def callback_worker(call):
     global age
     if call.data == "yes": #call.data это callback_data, которую мы указали при объявлении кнопки
-        bot.send_message(call.message.chat.id, 'Запомню : )')
+        bot.send_message(call.message.chat.id, 'Запомню : )\n Пришлите фото Вашей еды.')
+        bot.register_next_step_handler(call.message, get_food)
     elif call.data == "no":
         age = 0
         bot.send_message(call.message.chat.id,f"{call.from_user.first_name}, укажите Ваш возраст.")
         bot.register_next_step_handler(call.message, get_age)
         print('callback:', call.message.text)
+
+@bot.message_handler(content_types=['photo'])
+def get_food(message):
+     fileID = message.photo[-1].file_id
+     file_info = bot.get_file(fileID)
+     downloaded_file = bot.download_file(file_info.file_path)
+     time_now = datetime.datetime.now().strftime('%d-%m-%Y_%H:%M:%S')
+     print(time_now)
+     folder_id = message.from_user.id
+     with open("images/foods/"+time_now+".jpg", 'wb', encoding='utf-8') as new_file:
+         new_file.write(downloaded_file)
 
 
 
